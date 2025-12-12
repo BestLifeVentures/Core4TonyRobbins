@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Your Core Four - Inner Guidance System</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #2d2d2d;
+            --bg-secondary: #3a3a3a;
+            --text-primary: #e8e8e8;
+            --text-secondary: #b8b8b8;
+            --accent-gold: #d4af37;
+            --accent-bronze: #cd7f32;
+            --border-color: #4a4a4a;
+        }
+
+        body {
+            font-family: 'Cormorant Garamond', serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Decorative background elements */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle at 30% 50%, rgba(212, 175, 55, 0.03) 0%, transparent 50%),
+                        radial-gradient(circle at 70% 50%, rgba(205, 127, 50, 0.02) 0%, transparent 50%);
+            animation: subtleFloat 20s ease-in-out infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        @keyframes subtleFloat {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            50% { transform: translate(-20px, -20px) rotate(1deg); }
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+
+        .page {
+            display: none;
+            animation: fadeIn 0.6s ease-in;
+        }
+
+        .page.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            font-size: clamp(2rem, 5vw, 3.5rem);
+            font-weight: 700;
+            letter-spacing: 3px;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-bronze) 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 30px rgba(212, 175, 55, 0.3);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            margin-bottom: 8px;
+            letter-spacing: 1px;
+        }
+
+        .citation {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+            letter-spacing: 0.5px;
+        }
+
+        .video-frame {
+            width: 100%;
+            aspect-ratio: 16 / 9;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: 8px;
+            margin: 30px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-secondary);
+            font-size: 1rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .video-frame::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, transparent 30%, rgba(212, 175, 55, 0.05) 50%, transparent 70%);
+            animation: shimmer 3s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 1.1rem;
+            font-weight: 500;
+            color: var(--text-primary);
+            letter-spacing: 0.5px;
+        }
+
+        .label-note {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            font-weight: 300;
+            margin-left: 10px;
+            font-style: italic;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        textarea {
+            width: 100%;
+            padding: 14px 18px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-primary);
+            font-size: 1rem;
+            font-family: 'Cormorant Garamond', serif;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent-gold);
+            box-shadow: 0 0 0 3px rgba(212, 175, 55, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 120px;
+            line-height: 1.5;
+        }
+
+        .btn {
+            padding: 14px 40px;
+            background: linear-gradient(135deg, var(--accent-gold) 0%, var(--accent-bronze) 100%);
+            color: #1a1a1a;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            font-family: 'Cinzel', serif;
+            letter-spacing: 1px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(212, 175, 55, 0.3);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-record {
+            padding: 10px 24px;
+            font-size: 0.95rem;
+            margin-top: 10px;
+            background: transparent;
+            border: 2px solid var(--accent-gold);
+            color: var(--accent-gold);
+        }
+
+        .btn-record.recording {
+            background: #dc3545;
+            border-color: #dc3545;
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .page-title {
+            font-family: 'Cinzel', serif;
+            font-size: 2rem;
+            text-align: center;
+            margin-bottom: 30px;
+            color: var(--accent-gold);
+            letter-spacing: 2px;
+        }
+
+        .instruction-text {
+            background: var(--bg-secondary);
+            border-left: 4px solid var(--accent-gold);
+            padding: 20px;
+            margin: 30px 0;
+            border-radius: 4px;
+            font-size: 1rem;
+            line-height: 1.7;
+            color: var(--text-secondary);
+        }
+
+        .audio-control {
+            text-align: center;
+            margin: 30px 0;
+            padding: 25px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .audio-control-text {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            margin-bottom: 15px;
+            font-style: italic;
+        }
+
+        .question-block {
+            margin-bottom: 35px;
+            padding: 25px;
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+        }
+
+        .question-block:hover {
+            border-color: var(--accent-gold);
+            box-shadow: 0 4px 15px rgba(212, 175, 55, 0.1);
+        }
+
+        .question-label {
+            font-size: 1.2rem;
+            color: var(--accent-gold);
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+
+        .archetype-title {
+            font-family: 'Cinzel', serif;
+            font-size: 1.5rem;
+            color: var(--accent-gold);
+            margin-top: 30px;
+            margin-bottom: 15px;
+            text-align: center;
+            letter-spacing: 1.5px;
+        }
+
+        .results-section {
+            background: var(--bg-secondary);
+            padding: 30px;
+            border-radius: 8px;
+            margin: 20px 0;
+            border: 1px solid var(--border-color);
+        }
+
+        .copy-note {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-top: 10px;
+            font-style: italic;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .container {
+                padding: 30px 15px;
+            }
+
+            h1 {
+                font-size: 2rem;
+                letter-spacing: 2px;
+            }
+
+            .subtitle {
+                font-size: 1rem;
+            }
+
+            .btn {
+                padding: 12px 30px;
+                font-size: 1rem;
+            }
+
+            .question-block {
+                padding: 20px;
+            }
+
+            .button-group {
+                flex-direction: column;
+            }
+
+            .button-group .btn {
+                width: 100%;
+            }
+        }
+
+        /* Status messages */
+        .status-message {
+            padding: 12px 20px;
+            border-radius: 6px;
+            margin: 15px 0;
+            font-size: 0.95rem;
+            text-align: center;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-success {
+            background: rgba(40, 167, 69, 0.2);
+            border: 1px solid rgba(40, 167, 69, 0.5);
+            color: #5dd879;
+        }
+
+        .status-error {
+            background: rgba(220, 53, 69, 0.2);
+            border: 1px solid rgba(220, 53, 69, 0.5);
+            color: #ff6b7a;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Page 1: Welcome -->
+        <div id="page1" class="page active">
+            <div class="header">
+                <h1>Your Core Four</h1>
+                <div class="subtitle">(Inner Guidance From Your Four Superpowers)</div>
+                <div class="citation">- Framework By Tony Robbins</div>
+            </div>
+
+            <div class="video-frame">
+                <span>YouTube Video Embed Frame</span>
+            </div>
+
+            <form id="welcomeForm">
+                <div class="form-group">
+                    <label for="blvId">
+                        BLV ID <span class="label-note">Save info to your BLV portfolio</span>
+                    </label>
+                    <input type="text" id="blvId" name="blvId">
+                </div>
+
+                <div class="form-group">
+                    <label for="name">Name *</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email *</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="button-group">
+                    <button type="submit" class="btn">Start Session</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Page 2: The Warrior -->
+        <div id="page2" class="page">
+            <div class="header">
+                <h1>Your Core Four</h1>
+                <div class="subtitle">(Inner Guidance From Your Four Superpowers)</div>
+                <div class="citation">- Framework By Tony Robbins</div>
+            </div>
+
+            <h2 class="page-title">Play Video</h2>
+
+            <div class="video-frame">
+                <span>YouTube Video Embed Frame</span>
+            </div>
+
+            <div class="instruction-text">
+                Better connection to your core four comes when your eyes are closed and you are in a meditative state. 
+                To support this we have created a record button. If you prefer to leave your core state, you can simply type in your answers.
+            </div>
+
+            <div class="audio-control">
+                <div class="audio-control-text">Play this audio to connect with your core state.</div>
+                <button class="btn btn-secondary" id="audioBtn2">Enter Optimal State</button>
+                <audio id="audio2" src=""></audio>
+            </div>
+
+            <div class="archetype-title">The Warrior</div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to focus on is:</div>
+                <textarea id="warrior_focus" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="warrior_focus">🎤 Record</button>
+            </div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to remember is:</div>
+                <textarea id="warrior_remember" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="warrior_remember">🎤 Record</button>
+            </div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to do is:</div>
+                <textarea id="warrior_do" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="warrior_do">🎤 Record</button>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" onclick="navigateToPage(3)">Next</button>
+            </div>
+        </div>
+
+        <!-- Page 3: The Magician -->
+        <div id="page3" class="page">
+            <div class="header">
+                <h1>Your Core Four</h1>
+                <div class="subtitle">(Inner Guidance From Your Four Superpowers)</div>
+                <div class="citation">- Framework By Tony Robbins</div>
+            </div>
+
+            <h2 class="page-title">Play Video</h2>
+
+            <div class="video-frame">
+                <span>YouTube Video Embed Frame</span>
+            </div>
+
+            <div class="instruction-text">
+                Better connection to your core four comes when your eyes are closed and you are in a meditative state. 
+                To support this we have created a record button. If you prefer to leave your core state, you can simply type in your answers.
+            </div>
+
+            <div class="audio-control">
+                <div class="audio-control-text">Play this audio to connect with your core state.</div>
+                <button class="btn btn-secondary" id="audioBtn3">Enter Optimal State</button>
+                <audio id="audio3" src=""></audio>
+            </div>
+
+            <div class="archetype-title">The Magician</div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to focus on is:</div>
+                <textarea id="magician_focus" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="magician_focus">🎤 Record</button>
+            </div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to remember is:</div>
+                <textarea id="magician_remember" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="magician_remember">🎤 Record</button>
+            </div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to do is:</div>
+                <textarea id="magician_do" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="magician_do">🎤 Record</button>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" onclick="navigateToPage(4)">Next</button>
+            </div>
+        </div>
+
+        <!-- Page 4: The Lover -->
+        <div id="page4" class="page">
+            <div class="header">
+                <h1>Your Core Four</h1>
+                <div class="subtitle">(Inner Guidance From Your Four Superpowers)</div>
+                <div class="citation">- Framework By Tony Robbins</div>
+            </div>
+
+            <h2 class="page-title">Play Video</h2>
+
+            <div class="video-frame">
+                <span>YouTube Video Embed Frame</span>
+            </div>
+
+            <div class="instruction-text">
+                Better connection to your core four comes when your eyes are closed and you are in a meditative state. 
+                To support this we have created a record button. If you prefer to leave your core state, you can simply type in your answers.
+            </div>
+
+            <div class="audio-control">
+                <div class="audio-control-text">Play this audio to connect with your core state.</div>
+                <button class="btn btn-secondary" id="audioBtn4">Enter Optimal State</button>
+                <audio id="audio4" src=""></audio>
+            </div>
+
+            <div class="archetype-title">The Lover</div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to focus on is:</div>
+                <textarea id="lover_focus" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="lover_focus">🎤 Record</button>
+            </div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to remember is:</div>
+                <textarea id="lover_remember" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="lover_remember">🎤 Record</button>
+            </div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to do is:</div>
+                <textarea id="lover_do" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="lover_do">🎤 Record</button>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" onclick="navigateToPage(5)">Next</button>
+            </div>
+        </div>
+
+        <!-- Page 5: The Sage -->
+        <div id="page5" class="page">
+            <div class="header">
+                <h1>Your Core Four</h1>
+                <div class="subtitle">(Inner Guidance From Your Four Superpowers)</div>
+                <div class="citation">- Framework By Tony Robbins</div>
+            </div>
+
+            <h2 class="page-title">Play Video</h2>
+
+            <div class="video-frame">
+                <span>YouTube Video Embed Frame</span>
+            </div>
+
+            <div class="instruction-text">
+                Better connection to your core four comes when your eyes are closed and you are in a meditative state. 
+                To support this we have created a record button. If you prefer to leave your core state, you can simply type in your answers.
+            </div>
+
+            <div class="audio-control">
+                <div class="audio-control-text">Play this audio to connect with your core state.</div>
+                <button class="btn btn-secondary" id="audioBtn5">Enter Optimal State</button>
+                <audio id="audio5" src=""></audio>
+            </div>
+
+            <div class="archetype-title">The Sage</div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to focus on is:</div>
+                <textarea id="sage_focus" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="sage_focus">🎤 Record</button>
+            </div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to remember is:</div>
+                <textarea id="sage_remember" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="sage_remember">🎤 Record</button>
+            </div>
+
+            <div class="question-block">
+                <div class="question-label">All you need to do is:</div>
+                <textarea id="sage_do" maxlength="1000" placeholder="Type or record your answer..."></textarea>
+                <button class="btn btn-record" data-target="sage_do">🎤 Record</button>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" onclick="generateResults()">Complete Session</button>
+            </div>
+        </div>
+
+        <!-- Page 6: Results -->
+        <div id="page6" class="page">
+            <div class="header">
+                <h1>Your Core Four</h1>
+                <div class="subtitle">(Inner Guidance From Your Four Superpowers)</div>
+                <div class="citation">- Framework By Tony Robbins</div>
+            </div>
+
+            <h2 class="page-title">Results</h2>
+
+            <div class="video-frame">
+                <span>YouTube Video Embed Frame</span>
+            </div>
+
+            <div class="results-section">
+                <textarea id="resultsOutput" readonly style="width: 100%; min-height: 400px; background: var(--bg-primary); color: var(--text-primary); border: 1px solid var(--border-color); padding: 20px; border-radius: 6px; font-family: 'Cormorant Garamond', serif; font-size: 1rem; line-height: 1.6;"></textarea>
+            </div>
+
+            <div class="button-group">
+                <button class="btn" onclick="copyResults()">Copy for AI</button>
+                <button class="btn btn-secondary" onclick="downloadResults()">Download Result</button>
+            </div>
+            <div class="copy-note">Paste your results into AI. (We suggest Gemini due to largest free plan limits)</div>
+        </div>
+    </div>
+
+    <script>
+        // Store user data
+        let userData = {
+            blvId: '',
+            name: '',
+            email: '',
+            warrior_focus: '',
+            warrior_remember: '',
+            warrior_do: '',
+            magician_focus: '',
+            magician_remember: '',
+            magician_do: '',
+            lover_focus: '',
+            lover_remember: '',
+            lover_do: '',
+            sage_focus: '',
+            sage_remember: '',
+            sage_do: ''
+        };
+
+        // Speech recognition setup
+        let recognition;
+        let currentRecordingTarget = null;
+
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = true;
+            recognition.interimResults = true;
+            recognition.lang = 'en-US';
+
+            recognition.onresult = function(event) {
+                let finalTranscript = '';
+                let interimTranscript = '';
+
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const transcript = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalTranscript += transcript + ' ';
+                    } else {
+                        interimTranscript += transcript;
+                    }
+                }
+
+                if (currentRecordingTarget) {
+                    const textarea = document.getElementById(currentRecordingTarget);
+                    if (finalTranscript) {
+                        textarea.value += finalTranscript;
+                    }
+                }
+            };
+
+            recognition.onerror = function(event) {
+                console.error('Speech recognition error:', event.error);
+                showStatus('Error with speech recognition: ' + event.error, 'error');
+                stopAllRecording();
+            };
+
+            recognition.onend = function() {
+                if (currentRecordingTarget) {
+                    stopAllRecording();
+                }
+            };
+        }
+
+        // Page navigation
+        function navigateToPage(pageNum) {
+            // Save current page data
+            saveCurrentPageData();
+            
+            // Hide all pages
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            
+            // Show target page
+            document.getElementById('page' + pageNum).classList.add('active');
+            
+            // Scroll to top
+            window.scrollTo(0, 0);
+        }
+
+        // Save current page data to userData object
+        function saveCurrentPageData() {
+            const inputs = document.querySelectorAll('input[type="text"], input[type="email"], textarea');
+            inputs.forEach(input => {
+                if (input.id && userData.hasOwnProperty(input.id)) {
+                    userData[input.id] = input.value;
+                }
+            });
+        }
+
+        // Welcome form submission
+        document.getElementById('welcomeForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            userData.blvId = document.getElementById('blvId').value;
+            userData.name = document.getElementById('name').value;
+            userData.email = document.getElementById('email').value;
+            navigateToPage(2);
+        });
+
+        // Audio playback controls
+        document.querySelectorAll('[id^="audioBtn"]').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const audioId = this.id.replace('Btn', '');
+                const audio = document.getElementById(audioId);
+                
+                if (audio.paused) {
+                    audio.play();
+                    this.textContent = 'Pause Audio';
+                } else {
+                    audio.pause();
+                    this.textContent = 'Enter Optimal State';
+                }
+            });
+        });
+
+        // Reset button text when audio ends
+        document.querySelectorAll('audio').forEach(audio => {
+            audio.addEventListener('ended', function() {
+                const btnId = this.id + 'Btn';
+                document.getElementById(btnId).textContent = 'Enter Optimal State';
+            });
+        });
+
+        // Record buttons
+        document.querySelectorAll('.btn-record').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const targetId = this.getAttribute('data-target');
+                
+                if (!recognition) {
+                    showStatus('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.', 'error');
+                    return;
+                }
+
+                if (this.classList.contains('recording')) {
+                    // Stop recording
+                    stopRecording(this);
+                } else {
+                    // Start recording
+                    startRecording(targetId, this);
+                }
+            });
+        });
+
+        function startRecording(targetId, button) {
+            // Stop any other recording
+            stopAllRecording();
+            
+            currentRecordingTarget = targetId;
+            button.classList.add('recording');
+            button.textContent = '⏹️ Stop Recording';
+            
+            try {
+                recognition.start();
+            } catch (e) {
+                console.error('Recognition start error:', e);
+            }
+        }
+
+        function stopRecording(button) {
+            if (recognition) {
+                recognition.stop();
+            }
+            button.classList.remove('recording');
+            button.textContent = '🎤 Record';
+            currentRecordingTarget = null;
+        }
+
+        function stopAllRecording() {
+            document.querySelectorAll('.btn-record.recording').forEach(btn => {
+                btn.classList.remove('recording');
+                btn.textContent = '🎤 Record';
+            });
+            currentRecordingTarget = null;
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    // Ignore errors when stopping
+                }
+            }
+        }
+
+        // Generate results
+        function generateResults() {
+            saveCurrentPageData();
+            
+            const prompt = generatePrompt();
+            document.getElementById('resultsOutput').value = prompt;
+            navigateToPage(6);
+        }
+
+        function generatePrompt() {
+            const sections = [
+                {
+                    title: 'The Warrior',
+                    focus: userData.warrior_focus,
+                    remember: userData.warrior_remember,
+                    do: userData.warrior_do
+                },
+                {
+                    title: 'The Magician',
+                    focus: userData.magician_focus,
+                    remember: userData.magician_remember,
+                    do: userData.magician_do
+                },
+                {
+                    title: 'The Lover',
+                    focus: userData.lover_focus,
+                    remember: userData.lover_remember,
+                    do: userData.lover_do
+                },
+                {
+                    title: 'The Sage',
+                    focus: userData.sage_focus,
+                    remember: userData.sage_remember,
+                    do: userData.sage_do
+                }
+            ];
+
+            let prompt = '';
+            
+            sections.forEach(section => {
+                prompt += `${section.title} says:\n`;
+                prompt += `All you need to focus on is: ${summarize(section.focus)}\n`;
+                prompt += `All you need to remember is: ${summarize(section.remember)}\n`;
+                prompt += `All you need to do is: ${summarize(section.do)}\n\n`;
+            });
+
+            prompt += `You are an expert in psychology, human motivation, and behavior. Here are my inner parts separated into 4 key guides: the warrior, the magician, the lover, the sage. Use the answers I give you to help me APPLY their advice in my daily life. For this conversation you are meant to ask questions only. State "I am only asking questions" and instruct me to provide answers to your questions. Ask questions that will help me apply the advice given to my life based on my current circumstances and beliefs.`;
+
+            return prompt;
+        }
+
+        function summarize(text) {
+            if (!text || text.trim() === '') {
+                return '[No response provided]';
+            }
+            
+            // Simple summarization - trim to key points if too long
+            const words = text.trim().split(/\s+/);
+            if (words.length <= 50) {
+                return text.trim();
+            }
+            
+            // Return first 50 words for longer responses
+            return words.slice(0, 50).join(' ') + '...';
+        }
+
+        // Copy results to clipboard
+        function copyResults() {
+            const resultsText = document.getElementById('resultsOutput').value;
+            navigator.clipboard.writeText(resultsText).then(() => {
+                showStatus('Results copied to clipboard!', 'success');
+            }).catch(err => {
+                showStatus('Failed to copy results. Please select and copy manually.', 'error');
+            });
+        }
+
+        // Download results
+        function downloadResults() {
+            const resultsText = document.getElementById('resultsOutput').value;
+            const blob = new Blob([resultsText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'core-four-results.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            showStatus('Results downloaded!', 'success');
+        }
+
+        // Show status messages
+        function showStatus(message, type) {
+            // Remove any existing status messages
+            const existing = document.querySelector('.status-message');
+            if (existing) {
+                existing.remove();
+            }
+
+            const statusDiv = document.createElement('div');
+            statusDiv.className = `status-message status-${type}`;
+            statusDiv.textContent = message;
+            
+            const container = document.querySelector('.page.active');
+            if (container) {
+                container.insertBefore(statusDiv, container.firstChild);
+                
+                // Auto-remove after 4 seconds
+                setTimeout(() => {
+                    statusDiv.remove();
+                }, 4000);
+            }
+        }
+
+        // Auto-save on input change
+        document.addEventListener('input', function(e) {
+            if (e.target.matches('input, textarea')) {
+                saveCurrentPageData();
+            }
+        });
+
+        // Prevent data loss on page refresh
+        window.addEventListener('beforeunload', function(e) {
+            const hasData = Object.values(userData).some(val => val && val.trim() !== '');
+            if (hasData && !document.getElementById('page6').classList.contains('active')) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        });
+    </script>
+</body>
+</html>

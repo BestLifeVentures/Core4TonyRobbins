@@ -463,8 +463,13 @@
                 <span>YouTube Video Embed Frame</span>
             </div>
 
+            <div class="voice-guide-control" style="text-align: center; margin: 30px 0;">
+                <button class="btn" id="allowStartBtn2" onclick="startVoiceGuide(2, 'warrior')">Allow & Start</button>
+                <div id="voiceStatus2" style="margin-top: 15px; font-size: 1.1rem; color: var(--accent-gold); min-height: 30px;"></div>
+            </div>
+
             <div class="instruction-text">
-                Better connection to your core four comes when your eyes are closed and you are in a meditative state. 
+                Better connection to your core four comes when your eyes are closed and you are in a meditative state.
                 To support this we have created a record button. If you prefer to leave your core state, you can simply type in your answers.
             </div>
 
@@ -513,8 +518,13 @@
                 <span>YouTube Video Embed Frame</span>
             </div>
 
+            <div class="voice-guide-control" style="text-align: center; margin: 30px 0;">
+                <button class="btn" id="allowStartBtn3" onclick="startVoiceGuide(3, 'magician')">Allow & Start</button>
+                <div id="voiceStatus3" style="margin-top: 15px; font-size: 1.1rem; color: var(--accent-gold); min-height: 30px;"></div>
+            </div>
+
             <div class="instruction-text">
-                Better connection to your core four comes when your eyes are closed and you are in a meditative state. 
+                Better connection to your core four comes when your eyes are closed and you are in a meditative state.
                 To support this we have created a record button. If you prefer to leave your core state, you can simply type in your answers.
             </div>
 
@@ -563,8 +573,13 @@
                 <span>YouTube Video Embed Frame</span>
             </div>
 
+            <div class="voice-guide-control" style="text-align: center; margin: 30px 0;">
+                <button class="btn" id="allowStartBtn4" onclick="startVoiceGuide(4, 'lover')">Allow & Start</button>
+                <div id="voiceStatus4" style="margin-top: 15px; font-size: 1.1rem; color: var(--accent-gold); min-height: 30px;"></div>
+            </div>
+
             <div class="instruction-text">
-                Better connection to your core four comes when your eyes are closed and you are in a meditative state. 
+                Better connection to your core four comes when your eyes are closed and you are in a meditative state.
                 To support this we have created a record button. If you prefer to leave your core state, you can simply type in your answers.
             </div>
 
@@ -613,8 +628,13 @@
                 <span>YouTube Video Embed Frame</span>
             </div>
 
+            <div class="voice-guide-control" style="text-align: center; margin: 30px 0;">
+                <button class="btn" id="allowStartBtn5" onclick="startVoiceGuide(5, 'sage')">Allow & Start</button>
+                <div id="voiceStatus5" style="margin-top: 15px; font-size: 1.1rem; color: var(--accent-gold); min-height: 30px;"></div>
+            </div>
+
             <div class="instruction-text">
-                Better connection to your core four comes when your eyes are closed and you are in a meditative state. 
+                Better connection to your core four comes when your eyes are closed and you are in a meditative state.
                 To support this we have created a record button. If you prefer to leave your core state, you can simply type in your answers.
             </div>
 
@@ -942,6 +962,281 @@
             initializeSpeechRecognition();
         }
 
+        // ======================================
+        // VOICE-GUIDED SYSTEM
+        // ======================================
+
+        let voiceGuideState = {
+            active: false,
+            pageNum: null,
+            archetype: '',
+            currentQuestion: 0,
+            waitingForTrigger: false,
+            audioRecorder: null,
+            audioChunks: [],
+            allAudioBlobs: []
+        };
+
+        const archetypeConfig = {
+            'warrior': {
+                triggerPhrase: 'i am the warrior',
+                greeting: 'Hello Warrior',
+                questions: ['warrior_focus', 'warrior_remember', 'warrior_do'],
+                completion: 'Thank you warrior, you have completed your session'
+            },
+            'magician': {
+                triggerPhrase: 'i am the magician',
+                greeting: 'Hello Magician',
+                questions: ['magician_focus', 'magician_remember', 'magician_do'],
+                completion: 'Thank you magician, you have completed your session'
+            },
+            'lover': {
+                triggerPhrase: 'i am the lover',
+                greeting: 'Hello Lover',
+                questions: ['lover_focus', 'lover_remember', 'lover_do'],
+                completion: 'Thank you lover, you have completed your session'
+            },
+            'sage': {
+                triggerPhrase: 'i am the sage',
+                greeting: 'Hello Sage',
+                questions: ['sage_focus', 'sage_remember', 'sage_do'],
+                completion: 'Thank you sage, you have completed your session'
+            }
+        };
+
+        const questionTemplates = [
+            'All {name} needs to focus on is',
+            'All {name} needs to remember is',
+            'All {name} needs to do is'
+        ];
+
+        // Text-to-speech function
+        function speak(text, callback) {
+            if ('speechSynthesis' in window) {
+                // Cancel any ongoing speech
+                window.speechSynthesis.cancel();
+
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 0.9;
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+
+                if (callback) {
+                    utterance.onend = callback;
+                }
+
+                window.speechSynthesis.speak(utterance);
+            } else {
+                console.error('Text-to-speech not supported');
+                if (callback) callback();
+            }
+        }
+
+        // Start voice-guided session
+        async function startVoiceGuide(pageNum, archetype) {
+            const config = archetypeConfig[archetype];
+            if (!config) {
+                console.error('Invalid archetype:', archetype);
+                return;
+            }
+
+            // Request microphone permission
+            const hasAccess = await requestMicrophoneAccess();
+            if (!hasAccess) {
+                updateVoiceStatus(pageNum, 'Microphone access denied');
+                return;
+            }
+
+            // Initialize state
+            voiceGuideState = {
+                active: true,
+                pageNum: pageNum,
+                archetype: archetype,
+                currentQuestion: 0,
+                waitingForTrigger: true,
+                audioRecorder: null,
+                audioChunks: [],
+                allAudioBlobs: []
+            };
+
+            // Hide the button
+            document.getElementById(`allowStartBtn${pageNum}`).style.display = 'none';
+
+            // Update status
+            updateVoiceStatus(pageNum, `Say: "${config.triggerPhrase}"`);
+
+            // Start listening for trigger phrase
+            startVoiceGuidedRecognition();
+        }
+
+        // Update voice status display
+        function updateVoiceStatus(pageNum, message) {
+            const statusDiv = document.getElementById(`voiceStatus${pageNum}`);
+            if (statusDiv) {
+                statusDiv.textContent = message;
+            }
+        }
+
+        // Start voice recognition for voice-guided mode
+        function startVoiceGuidedRecognition() {
+            if (!recognition) return;
+
+            // Stop any existing recording
+            stopAllRecording();
+
+            try {
+                recognition.start();
+            } catch (e) {
+                console.log('Recognition already running');
+            }
+        }
+
+        // Handle voice commands in voice-guided mode
+        function handleVoiceCommand(transcript) {
+            if (!voiceGuideState.active) return false;
+
+            const lowerTranscript = transcript.toLowerCase().trim();
+            const config = archetypeConfig[voiceGuideState.archetype];
+
+            // Check for trigger phrase
+            if (voiceGuideState.waitingForTrigger) {
+                if (lowerTranscript.includes(config.triggerPhrase)) {
+                    voiceGuideState.waitingForTrigger = false;
+                    askNextQuestion();
+                    return true;
+                }
+            }
+
+            // Check for "read next question"
+            if (lowerTranscript.includes('read next question')) {
+                stopAudioRecording();
+
+                // Save current transcript to textarea
+                const currentField = config.questions[voiceGuideState.currentQuestion];
+                const textarea = document.getElementById(currentField);
+                if (textarea && finalTranscript) {
+                    textarea.value = finalTranscript.trim();
+                    saveCurrentPageData();
+                }
+
+                // Reset transcripts for next question
+                finalTranscript = '';
+                interimTranscript = '';
+
+                voiceGuideState.currentQuestion++;
+
+                if (voiceGuideState.currentQuestion < 3) {
+                    askNextQuestion();
+                } else {
+                    completeSession();
+                }
+                return true;
+            }
+
+            return false;
+        }
+
+        // Ask the next question
+        function askNextQuestion() {
+            const config = archetypeConfig[voiceGuideState.archetype];
+            const questionIndex = voiceGuideState.currentQuestion;
+            const userName = userData.name || 'you';
+
+            let questionText = questionTemplates[questionIndex].replace('{name}', userName);
+
+            if (questionIndex === 0) {
+                questionText = `${config.greeting}, ${questionText}`;
+            }
+
+            updateVoiceStatus(voiceGuideState.pageNum, `Listening... (Say "Read Next Question" when done)`);
+
+            speak(questionText, () => {
+                // Start recording the answer
+                startAudioRecording();
+            });
+        }
+
+        // Start recording audio
+        async function startAudioRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                voiceGuideState.audioRecorder = new MediaRecorder(stream);
+                voiceGuideState.audioChunks = [];
+
+                voiceGuideState.audioRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        voiceGuideState.audioChunks.push(event.data);
+                    }
+                };
+
+                voiceGuideState.audioRecorder.onstop = () => {
+                    const audioBlob = new Blob(voiceGuideState.audioChunks, { type: 'audio/webm' });
+                    voiceGuideState.allAudioBlobs.push(audioBlob);
+                    voiceGuideState.audioChunks = [];
+
+                    // Stop the stream
+                    stream.getTracks().forEach(track => track.stop());
+                };
+
+                voiceGuideState.audioRecorder.start();
+                console.log('Audio recording started');
+            } catch (error) {
+                console.error('Error starting audio recording:', error);
+            }
+        }
+
+        // Stop recording audio
+        function stopAudioRecording() {
+            if (voiceGuideState.audioRecorder && voiceGuideState.audioRecorder.state === 'recording') {
+                voiceGuideState.audioRecorder.stop();
+                console.log('Audio recording stopped');
+            }
+        }
+
+        // Complete the session
+        function completeSession() {
+            const config = archetypeConfig[voiceGuideState.archetype];
+
+            updateVoiceStatus(voiceGuideState.pageNum, 'Session complete!');
+
+            speak(config.completion, () => {
+                voiceGuideState.active = false;
+                recognition.stop();
+
+                // Store audio blobs for download
+                if (voiceGuideState.allAudioBlobs.length > 0) {
+                    // Store in global variable for download later
+                    window.sessionAudioBlobs = window.sessionAudioBlobs || [];
+                    window.sessionAudioBlobs.push(...voiceGuideState.allAudioBlobs);
+                }
+            });
+        }
+
+        // Modify the recognition.onresult to handle voice commands
+        const originalOnResult = recognition ? recognition.onresult : null;
+
+        if (recognition) {
+            const baseOnResult = recognition.onresult;
+
+            recognition.onresult = function(event) {
+                // First check for voice commands in voice-guided mode
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    if (event.results[i].isFinal) {
+                        const transcript = event.results[i][0].transcript;
+                        const handled = handleVoiceCommand(transcript);
+                        if (handled) {
+                            // Don't process this as normal transcription
+                            return;
+                        }
+                    }
+                }
+
+                // If not handled by voice guide, use normal processing
+                baseOnResult.call(this, event);
+            };
+        }
+
         // Page navigation
         function navigateToPage(pageNum) {
             // Save current page data
@@ -1200,19 +1495,35 @@
             });
         }
 
-        // Download results
+        // Download results (audio or text)
         function downloadResults() {
-            const resultsText = document.getElementById('resultsOutput').value;
-            const blob = new Blob([resultsText], { type: 'text/plain' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'core-four-results.txt';
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            showStatus('Results downloaded!', 'success');
+            // Check if we have audio recordings
+            if (window.sessionAudioBlobs && window.sessionAudioBlobs.length > 0) {
+                // Download audio file
+                const combinedBlob = new Blob(window.sessionAudioBlobs, { type: 'audio/webm' });
+                const url = URL.createObjectURL(combinedBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'core-four-session-audio.webm';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showStatus('Audio recording downloaded!', 'success');
+            } else {
+                // Fallback to text download
+                const resultsText = document.getElementById('resultsOutput').value;
+                const blob = new Blob([resultsText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'core-four-results.txt';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                showStatus('Results downloaded!', 'success');
+            }
         }
 
         // Show status messages

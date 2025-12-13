@@ -502,6 +502,7 @@
 
             <div class="button-group">
                 <button class="btn" onclick="navigateToPage(3)">Next</button>
+                <button class="btn btn-secondary" onclick="restartSession(2, 'warrior')">Try Again</button>
             </div>
         </div>
 
@@ -558,6 +559,7 @@
 
             <div class="button-group">
                 <button class="btn" onclick="navigateToPage(4)">Next</button>
+                <button class="btn btn-secondary" onclick="restartSession(3, 'magician')">Try Again</button>
             </div>
         </div>
 
@@ -614,6 +616,7 @@
 
             <div class="button-group">
                 <button class="btn" onclick="navigateToPage(5)">Next</button>
+                <button class="btn btn-secondary" onclick="restartSession(4, 'lover')">Try Again</button>
             </div>
         </div>
 
@@ -670,6 +673,7 @@
 
             <div class="button-group">
                 <button class="btn" onclick="generateResults()">Complete Session</button>
+                <button class="btn btn-secondary" onclick="restartSession(5, 'sage')">Try Again</button>
             </div>
         </div>
 
@@ -1244,6 +1248,49 @@
                     window.sessionAudioBlobs.push(...voiceGuideState.allAudioBlobs);
                 }
             });
+        }
+
+        // Restart the session
+        function restartSession(pageNum, archetype) {
+            const config = archetypeConfig[archetype];
+
+            // Stop any ongoing session
+            if (voiceGuideState.active) {
+                voiceGuideState.active = false;
+                if (recognition) {
+                    try {
+                        recognition.stop();
+                    } catch (e) {
+                        console.log('Error stopping recognition:', e);
+                    }
+                }
+                stopAudioRecording();
+            }
+
+            // Clear the textareas for this archetype
+            config.questions.forEach(questionId => {
+                const textarea = document.getElementById(questionId);
+                if (textarea) {
+                    textarea.value = '';
+                }
+            });
+
+            // Reset transcripts
+            finalTranscript = '';
+            interimTranscript = '';
+
+            // Show the Allow & Start button again
+            const startButton = document.getElementById(`allowStartBtn${pageNum}`);
+            if (startButton) {
+                startButton.style.display = '';
+            }
+
+            // Update status and speak restart message
+            const archetypeName = archetype.charAt(0).toUpperCase() + archetype.slice(1);
+            const restartMessage = `Restarting. State "I am the ${archetypeName}"`;
+
+            updateVoiceStatus(pageNum, restartMessage);
+            speak(restartMessage);
         }
 
         // Modify the recognition.onresult to handle voice commands

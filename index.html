@@ -696,48 +696,122 @@
         };
 
         // Speech recognition setup
-        let recognition;
+        let recognition = null;
         let currentRecordingTarget = null;
+        let microphonePermissionGranted = false;
 
-        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        // Initialize speech recognition
+        function initializeSpeechRecognition() {
+            if (!('webkitSpeechRecognition' in window || 'SpeechRecognition' in window)) {
+                console.error('Speech recognition not supported');
+                return false;
+            }
+
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             recognition = new SpeechRecognition();
             recognition.continuous = true;
             recognition.interimResults = true;
             recognition.lang = 'en-US';
+            recognition.maxAlternatives = 1;
+
+            recognition.onstart = function() {
+                console.log('Speech recognition started');
+                microphonePermissionGranted = true;
+            };
 
             recognition.onresult = function(event) {
                 let finalTranscript = '';
-                let interimTranscript = '';
 
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
                         finalTranscript += transcript + ' ';
-                    } else {
-                        interimTranscript += transcript;
                     }
                 }
 
-                if (currentRecordingTarget) {
+                if (currentRecordingTarget && finalTranscript) {
                     const textarea = document.getElementById(currentRecordingTarget);
-                    if (finalTranscript) {
-                        textarea.value += finalTranscript;
-                    }
+                    textarea.value += finalTranscript;
+                    // Save data after each transcription
+                    saveCurrentPageData();
                 }
             };
 
             recognition.onerror = function(event) {
                 console.error('Speech recognition error:', event.error);
-                showStatus('Error with speech recognition: ' + event.error, 'error');
+                let errorMessage = 'Error with speech recognition: ';
+
+                switch(event.error) {
+                    case 'no-speech':
+                        errorMessage = 'No speech detected. Please try again.';
+                        break;
+                    case 'audio-capture':
+                        errorMessage = 'No microphone found. Please ensure your computer microphone is connected and enabled.';
+                        break;
+                    case 'not-allowed':
+                        errorMessage = 'Microphone permission denied. Please allow microphone access in your browser settings.';
+                        microphonePermissionGranted = false;
+                        break;
+                    case 'network':
+                        errorMessage = 'Network error occurred. Please check your internet connection.';
+                        break;
+                    default:
+                        errorMessage += event.error;
+                }
+
+                showStatus(errorMessage, 'error');
                 stopAllRecording();
             };
 
             recognition.onend = function() {
+                console.log('Speech recognition ended');
+                // Only stop if we're not supposed to be recording
                 if (currentRecordingTarget) {
-                    stopAllRecording();
+                    // Try to restart if still supposed to be recording
+                    const recordButton = document.querySelector('.btn-record.recording');
+                    if (recordButton) {
+                        try {
+                            recognition.start();
+                        } catch (e) {
+                            console.log('Could not restart recognition:', e);
+                            stopAllRecording();
+                        }
+                    }
                 }
             };
+
+            return true;
+        }
+
+        // Request microphone access explicitly
+        async function requestMicrophoneAccess() {
+            try {
+                // Request microphone permission explicitly
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                // Stop the stream immediately - we just needed permission
+                stream.getTracks().forEach(track => track.stop());
+                console.log('Microphone access granted');
+                return true;
+            } catch (error) {
+                console.error('Microphone access error:', error);
+                let errorMessage = 'Could not access microphone: ';
+
+                if (error.name === 'NotAllowedError') {
+                    errorMessage = 'Microphone permission denied. Please allow microphone access and try again.';
+                } else if (error.name === 'NotFoundError') {
+                    errorMessage = 'No microphone found. Please connect a microphone to your computer.';
+                } else {
+                    errorMessage += error.message;
+                }
+
+                showStatus(errorMessage, 'error');
+                return false;
+            }
+        }
+
+        // Initialize speech recognition on page load
+        if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            initializeSpeechRecognition();
         }
 
         // Page navigation
@@ -802,9 +876,9 @@
 
         // Record buttons
         document.querySelectorAll('.btn-record').forEach(btn => {
-            btn.addEventListener('click', function() {
+            btn.addEventListener('click', async function() {
                 const targetId = this.getAttribute('data-target');
-                
+
                 if (!recognition) {
                     showStatus('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.', 'error');
                     return;
@@ -815,33 +889,54 @@
                     stopRecording(this);
                 } else {
                     // Start recording
-                    startRecording(targetId, this);
+                    await startRecording(targetId, this);
                 }
             });
         });
 
-        function startRecording(targetId, button) {
+        async function startRecording(targetId, button) {
             // Stop any other recording
             stopAllRecording();
-            
+
+            // Request microphone permission first
+            showStatus('Requesting microphone access...', 'success');
+            const hasAccess = await requestMicrophoneAccess();
+
+            if (!hasAccess) {
+                return;
+            }
+
             currentRecordingTarget = targetId;
             button.classList.add('recording');
             button.textContent = '⏹️ Stop Recording';
-            
+
             try {
                 recognition.start();
+                showStatus('Recording... Speak now', 'success');
             } catch (e) {
                 console.error('Recognition start error:', e);
+                if (e.message && e.message.includes('already started')) {
+                    // Recognition is already running, just continue
+                    showStatus('Recording... Speak now', 'success');
+                } else {
+                    showStatus('Failed to start recording. Please try again.', 'error');
+                    stopRecording(button);
+                }
             }
         }
 
         function stopRecording(button) {
             if (recognition) {
-                recognition.stop();
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.log('Error stopping recognition:', e);
+                }
             }
             button.classList.remove('recording');
             button.textContent = '🎤 Record';
             currentRecordingTarget = null;
+            showStatus('Recording stopped', 'success');
         }
 
         function stopAllRecording() {

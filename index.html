@@ -484,19 +484,20 @@
             <div class="question-block">
                 <div class="question-label">All you need to focus on is:</div>
                 <textarea id="warrior_focus" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="warrior_focus">🎤 Record</button>
             </div>
 
             <div class="question-block">
                 <div class="question-label">All you need to remember is:</div>
                 <textarea id="warrior_remember" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="warrior_remember">🎤 Record</button>
             </div>
 
             <div class="question-block">
                 <div class="question-label">All you need to do is:</div>
                 <textarea id="warrior_do" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="warrior_do">🎤 Record</button>
+            </div>
+
+            <div class="instruction-text" style="margin-top: 30px; text-align: center; font-style: normal;">
+                Make sure the audio was recorded properly & adjust in textboxes if necessary. When text boxes are accurate select "Next".
             </div>
 
             <div class="button-group">
@@ -539,19 +540,20 @@
             <div class="question-block">
                 <div class="question-label">All you need to focus on is:</div>
                 <textarea id="magician_focus" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="magician_focus">🎤 Record</button>
             </div>
 
             <div class="question-block">
                 <div class="question-label">All you need to remember is:</div>
                 <textarea id="magician_remember" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="magician_remember">🎤 Record</button>
             </div>
 
             <div class="question-block">
                 <div class="question-label">All you need to do is:</div>
                 <textarea id="magician_do" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="magician_do">🎤 Record</button>
+            </div>
+
+            <div class="instruction-text" style="margin-top: 30px; text-align: center; font-style: normal;">
+                Make sure the audio was recorded properly & adjust in textboxes if necessary. When text boxes are accurate select "Next".
             </div>
 
             <div class="button-group">
@@ -594,19 +596,20 @@
             <div class="question-block">
                 <div class="question-label">All you need to focus on is:</div>
                 <textarea id="lover_focus" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="lover_focus">🎤 Record</button>
             </div>
 
             <div class="question-block">
                 <div class="question-label">All you need to remember is:</div>
                 <textarea id="lover_remember" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="lover_remember">🎤 Record</button>
             </div>
 
             <div class="question-block">
                 <div class="question-label">All you need to do is:</div>
                 <textarea id="lover_do" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="lover_do">🎤 Record</button>
+            </div>
+
+            <div class="instruction-text" style="margin-top: 30px; text-align: center; font-style: normal;">
+                Make sure the audio was recorded properly & adjust in textboxes if necessary. When text boxes are accurate select "Next".
             </div>
 
             <div class="button-group">
@@ -649,19 +652,20 @@
             <div class="question-block">
                 <div class="question-label">All you need to focus on is:</div>
                 <textarea id="sage_focus" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="sage_focus">🎤 Record</button>
             </div>
 
             <div class="question-block">
                 <div class="question-label">All you need to remember is:</div>
                 <textarea id="sage_remember" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="sage_remember">🎤 Record</button>
             </div>
 
             <div class="question-block">
                 <div class="question-label">All you need to do is:</div>
                 <textarea id="sage_do" maxlength="1000" placeholder="Type or record your answer..."></textarea>
-                <button class="btn btn-record" data-target="sage_do">🎤 Record</button>
+            </div>
+
+            <div class="instruction-text" style="margin-top: 30px; text-align: center; font-style: normal;">
+                Make sure the audio was recorded properly & adjust in textboxes if necessary. When text boxes are accurate select "Complete Session".
             </div>
 
             <div class="button-group">
@@ -1017,9 +1021,30 @@
                 window.speechSynthesis.cancel();
 
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.9;
-                utterance.pitch = 1.0;
-                utterance.volume = 1.0;
+
+                // Select a preferred voice (female, English)
+                const voices = window.speechSynthesis.getVoices();
+                const preferredVoice = voices.find(voice =>
+                    voice.lang.startsWith('en') &&
+                    voice.name.toLowerCase().includes('female')
+                ) || voices.find(voice =>
+                    voice.lang.startsWith('en') &&
+                    (voice.name.includes('Samantha') ||
+                     voice.name.includes('Karen') ||
+                     voice.name.includes('Susan') ||
+                     voice.name.includes('Google US English') ||
+                     voice.name.includes('Microsoft Zira'))
+                ) || voices.find(voice => voice.lang.startsWith('en'));
+
+                if (preferredVoice) {
+                    utterance.voice = preferredVoice;
+                    console.log('Using voice:', preferredVoice.name);
+                }
+
+                // Voice settings for calm, clear speech
+                utterance.rate = 0.85;  // Slower, more calming pace
+                utterance.pitch = 1.0;  // Natural pitch
+                utterance.volume = 1.0; // Full volume
 
                 if (callback) {
                     utterance.onend = callback;
@@ -1030,6 +1055,14 @@
                 console.error('Text-to-speech not supported');
                 if (callback) callback();
             }
+        }
+
+        // Load voices when they become available
+        if ('speechSynthesis' in window) {
+            speechSynthesis.onvoiceschanged = () => {
+                const voices = speechSynthesis.getVoices();
+                console.log('Available voices:', voices.map(v => v.name));
+            };
         }
 
         // Start voice-guided session

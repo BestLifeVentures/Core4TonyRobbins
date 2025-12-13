@@ -700,6 +700,8 @@
         let currentRecordingTarget = null;
         let microphonePermissionGranted = false;
         let microphonePermissionRequested = false;
+        let finalTranscript = '';
+        let interimTranscript = '';
 
         // Initialize speech recognition
         function initializeSpeechRecognition() {
@@ -718,23 +720,46 @@
             recognition.onstart = function() {
                 console.log('Speech recognition started');
                 microphonePermissionGranted = true;
+                finalTranscript = '';
+                interimTranscript = '';
             };
 
             recognition.onresult = function(event) {
-                let finalTranscript = '';
+                let interim = '';
+                let final = '';
 
                 for (let i = event.resultIndex; i < event.results.length; i++) {
                     const transcript = event.results[i][0].transcript;
                     if (event.results[i].isFinal) {
-                        finalTranscript += transcript + ' ';
+                        final += transcript + ' ';
+                    } else {
+                        interim += transcript;
                     }
                 }
 
-                if (currentRecordingTarget && finalTranscript) {
+                // Update the final transcript
+                if (final) {
+                    finalTranscript += final;
+                }
+
+                // Update interim transcript
+                interimTranscript = interim;
+
+                // Update the textarea with both final and interim
+                if (currentRecordingTarget) {
                     const textarea = document.getElementById(currentRecordingTarget);
-                    textarea.value += finalTranscript;
-                    // Save data after each transcription
-                    saveCurrentPageData();
+                    const baseValue = textarea.dataset.baseValue || '';
+
+                    // Combine base value + final transcript + interim transcript
+                    textarea.value = baseValue + finalTranscript + interimTranscript;
+
+                    // Auto-scroll to bottom
+                    textarea.scrollTop = textarea.scrollHeight;
+
+                    // Save data after each final transcription
+                    if (final) {
+                        saveCurrentPageData();
+                    }
                 }
             };
 
@@ -767,17 +792,24 @@
 
             recognition.onend = function() {
                 console.log('Speech recognition ended');
-                // Only stop if we're not supposed to be recording
+                // Only restart if we're still supposed to be recording
                 if (currentRecordingTarget) {
                     // Try to restart if still supposed to be recording
                     const recordButton = document.querySelector('.btn-record.recording');
                     if (recordButton) {
-                        try {
-                            recognition.start();
-                        } catch (e) {
-                            console.log('Could not restart recognition:', e);
-                            stopAllRecording();
-                        }
+                        // Use setTimeout to avoid immediate restart issues in some browsers
+                        setTimeout(() => {
+                            try {
+                                console.log('Auto-restarting recognition...');
+                                recognition.start();
+                            } catch (e) {
+                                console.log('Could not restart recognition:', e);
+                                // Only stop if it's a real error, not "already started"
+                                if (!e.message || !e.message.includes('already started')) {
+                                    stopAllRecording();
+                                }
+                            }
+                        }, 100);
                     }
                 }
             };
@@ -1009,9 +1041,20 @@
             button.classList.add('recording');
             button.textContent = '⏹️ Stop Recording';
 
+            // Store the current textarea value to append to it
+            const textarea = document.getElementById(targetId);
+            const existingText = textarea.value;
+
+            // Reset transcript variables for new recording
+            finalTranscript = '';
+            interimTranscript = '';
+
             try {
                 recognition.start();
                 showStatus('Recording... Speak now', 'success');
+
+                // Store the base value so we know where to append
+                textarea.dataset.baseValue = existingText;
             } catch (e) {
                 console.error('Recognition start error:', e);
                 if (e.message && e.message.includes('already started')) {
@@ -1034,7 +1077,20 @@
             }
             button.classList.remove('recording');
             button.textContent = '🎤 Record';
+
+            // Finalize the transcript
+            if (currentRecordingTarget) {
+                const textarea = document.getElementById(currentRecordingTarget);
+                const baseValue = textarea.dataset.baseValue || '';
+                // Set final value without interim
+                textarea.value = baseValue + finalTranscript;
+                delete textarea.dataset.baseValue;
+                saveCurrentPageData();
+            }
+
             currentRecordingTarget = null;
+            finalTranscript = '';
+            interimTranscript = '';
             showStatus('Recording stopped', 'success');
         }
 
@@ -1043,7 +1099,22 @@
                 btn.classList.remove('recording');
                 btn.textContent = '🎤 Record';
             });
+
+            // Finalize any active recording
+            if (currentRecordingTarget) {
+                const textarea = document.getElementById(currentRecordingTarget);
+                if (textarea) {
+                    const baseValue = textarea.dataset.baseValue || '';
+                    textarea.value = baseValue + finalTranscript;
+                    delete textarea.dataset.baseValue;
+                    saveCurrentPageData();
+                }
+            }
+
             currentRecordingTarget = null;
+            finalTranscript = '';
+            interimTranscript = '';
+
             if (recognition) {
                 try {
                     recognition.stop();

@@ -785,6 +785,46 @@
             return true;
         }
 
+        // Get available audio devices and select computer microphone
+        async function getComputerMicrophone() {
+            try {
+                // First request basic permission
+                await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Now enumerate devices
+                const devices = await navigator.mediaDevices.enumerateDevices();
+                const audioInputs = devices.filter(device => device.kind === 'audioinput');
+
+                console.log('Available audio input devices:');
+                audioInputs.forEach((device, index) => {
+                    console.log(`${index}: ${device.label} (${device.deviceId})`);
+                });
+
+                // Try to find built-in/internal microphone (not phone/bluetooth)
+                const computerMic = audioInputs.find(device => {
+                    const label = device.label.toLowerCase();
+                    // Look for built-in, internal, or default microphones
+                    // Avoid bluetooth, phone, or external devices
+                    return (
+                        (label.includes('built-in') ||
+                         label.includes('internal') ||
+                         label.includes('default') ||
+                         label.includes('microphone array') ||
+                         label.includes('laptop')) &&
+                        !label.includes('bluetooth') &&
+                        !label.includes('phone') &&
+                        !label.includes('headset')
+                    );
+                }) || audioInputs[0]; // Fallback to first device
+
+                console.log('Selected microphone:', computerMic.label);
+                return computerMic.deviceId;
+            } catch (error) {
+                console.error('Error enumerating devices:', error);
+                return null;
+            }
+        }
+
         // Request microphone access explicitly (only once)
         async function requestMicrophoneAccess() {
             // If already granted, skip
@@ -800,11 +840,34 @@
 
             try {
                 microphonePermissionRequested = true;
-                // Request microphone permission explicitly
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Get the computer's microphone device ID
+                const deviceId = await getComputerMicrophone();
+
+                if (!deviceId) {
+                    throw new Error('Could not find suitable microphone');
+                }
+
+                // Request microphone permission with specific device
+                const constraints = {
+                    audio: {
+                        deviceId: { exact: deviceId },
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                };
+
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                // Log which device we're using
+                const track = stream.getAudioTracks()[0];
+                console.log('Using microphone:', track.label);
+                console.log('Device settings:', track.getSettings());
+
                 // Stop the stream immediately - we just needed permission
                 stream.getTracks().forEach(track => track.stop());
-                console.log('Microphone access granted');
+
                 microphonePermissionGranted = true;
                 return true;
             } catch (error) {
@@ -813,8 +876,26 @@
 
                 if (error.name === 'NotAllowedError') {
                     errorMessage = 'Microphone permission denied. Please allow microphone access and try again.';
-                } else if (error.name === 'NotFoundError') {
-                    errorMessage = 'No microphone found. Please connect a microphone to your computer.';
+                } else if (error.name === 'NotFoundError' || error.name === 'OverconstrainedError') {
+                    // If exact device fails, try without device constraint
+                    console.log('Falling back to default microphone');
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({
+                            audio: {
+                                echoCancellation: true,
+                                noiseSuppression: true,
+                                autoGainControl: true
+                            }
+                        });
+                        const track = stream.getAudioTracks()[0];
+                        console.log('Using fallback microphone:', track.label);
+                        showStatus('Using default microphone. If this is your phone, please change your default microphone in system settings.', 'error');
+                        stream.getTracks().forEach(track => track.stop());
+                        microphonePermissionGranted = true;
+                        return true;
+                    } catch (fallbackError) {
+                        errorMessage = 'No microphone found. Please connect a microphone to your computer.';
+                    }
                 } else {
                     errorMessage += error.message;
                 }

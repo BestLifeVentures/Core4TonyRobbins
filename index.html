@@ -699,6 +699,7 @@
         let recognition = null;
         let currentRecordingTarget = null;
         let microphonePermissionGranted = false;
+        let microphonePermissionRequested = false;
 
         // Initialize speech recognition
         function initializeSpeechRecognition() {
@@ -751,6 +752,7 @@
                     case 'not-allowed':
                         errorMessage = 'Microphone permission denied. Please allow microphone access in your browser settings.';
                         microphonePermissionGranted = false;
+                        microphonePermissionRequested = false;
                         break;
                     case 'network':
                         errorMessage = 'Network error occurred. Please check your internet connection.';
@@ -783,14 +785,27 @@
             return true;
         }
 
-        // Request microphone access explicitly
+        // Request microphone access explicitly (only once)
         async function requestMicrophoneAccess() {
+            // If already granted, skip
+            if (microphonePermissionGranted) {
+                return true;
+            }
+
+            // If already requested and denied, don't spam the user
+            if (microphonePermissionRequested && !microphonePermissionGranted) {
+                showStatus('Microphone permission was previously denied. Please enable it in your browser settings.', 'error');
+                return false;
+            }
+
             try {
+                microphonePermissionRequested = true;
                 // Request microphone permission explicitly
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 // Stop the stream immediately - we just needed permission
                 stream.getTracks().forEach(track => track.stop());
                 console.log('Microphone access granted');
+                microphonePermissionGranted = true;
                 return true;
             } catch (error) {
                 console.error('Microphone access error:', error);
@@ -898,8 +913,11 @@
             // Stop any other recording
             stopAllRecording();
 
-            // Request microphone permission first
-            showStatus('Requesting microphone access...', 'success');
+            // Request microphone permission first (only happens once)
+            if (!microphonePermissionGranted) {
+                showStatus('Requesting microphone access...', 'success');
+            }
+
             const hasAccess = await requestMicrophoneAccess();
 
             if (!hasAccess) {

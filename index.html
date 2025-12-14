@@ -409,6 +409,27 @@
             border: 1px solid rgba(220, 53, 69, 0.5);
             color: #ff6b7a;
         }
+
+        /* Confetti animation */
+        .confetti {
+            position: fixed;
+            width: 10px;
+            height: 10px;
+            background: var(--accent-gold);
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        @keyframes confettiFall {
+            0% {
+                transform: translateY(0) rotate(0deg);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(100vh) rotate(720deg);
+                opacity: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -1309,19 +1330,47 @@
             };
         }
 
+        // Confetti animation function
+        function createConfetti() {
+            const colors = ['#d4af37', '#cd7f32', '#ffd700', '#ffb347', '#e8e8e8'];
+            const confettiCount = 100;
+
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.className = 'confetti';
+                confetti.style.left = Math.random() * 100 + 'vw';
+                confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+                confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+                confetti.style.animationDelay = Math.random() * 0.5 + 's';
+                confetti.style.animation = 'confettiFall linear forwards';
+
+                document.body.appendChild(confetti);
+
+                // Remove confetti after animation
+                setTimeout(() => {
+                    confetti.remove();
+                }, 5000);
+            }
+        }
+
         // Page navigation
         function navigateToPage(pageNum) {
             // Save current page data
             saveCurrentPageData();
-            
+
             // Hide all pages
             document.querySelectorAll('.page').forEach(page => {
                 page.classList.remove('active');
             });
-            
+
             // Show target page
             document.getElementById('page' + pageNum).classList.add('active');
-            
+
+            // Trigger confetti on final page
+            if (pageNum === 6) {
+                createConfetti();
+            }
+
             // Scroll to top
             window.scrollTo(0, 0);
         }
@@ -1528,8 +1577,8 @@
                 }
             ];
 
-            let prompt = '';
-            
+            let prompt = 'Understand tony robbins framework of the 4 archetypes when reviewing this prompt.\n\n';
+
             sections.forEach(section => {
                 prompt += `${section.title} says:\n`;
                 prompt += `All you need to focus on is: ${summarize(section.focus)}\n`;

@@ -7,6 +7,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:wght@300;400;500&display=swap" rel="stylesheet">
+
+    <!-- Google Sign-In -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+
     <style>
         * {
             margin: 0;
@@ -161,6 +165,45 @@
             font-weight: 300;
             margin-left: 10px;
             font-style: italic;
+        }
+
+        .google-signin-container {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 30px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .google-signin-text {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 15px;
+        }
+
+        .divider-text {
+            text-align: center;
+            margin: 20px 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        .divider-text::before,
+        .divider-text::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 40%;
+            height: 1px;
+            background: var(--border-color);
+        }
+
+        .divider-text::before {
+            left: 0;
+        }
+
+        .divider-text::after {
+            right: 0;
         }
 
         input[type="text"],
@@ -585,6 +628,34 @@
             </div>
 
             <form id="welcomeForm">
+                <!-- Google Sign-In Section
+                     SETUP REQUIRED:
+                     1. Go to https://console.cloud.google.com/
+                     2. Create a new project or select existing
+                     3. Enable "Google+ API"
+                     4. Go to "Credentials" and create "OAuth 2.0 Client ID"
+                     5. Add your domain to "Authorized JavaScript origins"
+                     6. Replace YOUR_GOOGLE_CLIENT_ID below with your actual Client ID
+                -->
+                <div class="google-signin-container">
+                    <div class="google-signin-text">Quick sign in with Google</div>
+                    <div id="g_id_onload"
+                         data-client_id="YOUR_GOOGLE_CLIENT_ID"
+                         data-callback="handleGoogleSignIn"
+                         data-auto_prompt="false">
+                    </div>
+                    <div class="g_id_signin"
+                         data-type="standard"
+                         data-size="large"
+                         data-theme="filled_black"
+                         data-text="signin_with"
+                         data-shape="rectangular"
+                         data-logo_alignment="left">
+                    </div>
+                </div>
+
+                <div class="divider-text">or enter manually</div>
+
                 <div class="form-group">
                     <label for="blvId">
                         BLV ID <span class="label-note">Save info to your BLV portfolio</span>
@@ -2064,6 +2135,35 @@
                 closeCompatibilityModal();
             }
         });
+
+        // Google Sign-In Callback
+        function handleGoogleSignIn(response) {
+            try {
+                // Decode the JWT credential to get user info
+                const credential = response.credential;
+                const payload = JSON.parse(atob(credential.split('.')[1]));
+
+                // Extract name and email
+                const name = payload.name || '';
+                const email = payload.email || '';
+
+                // Fill in the form fields
+                document.getElementById('name').value = name;
+                document.getElementById('email').value = email;
+
+                // Save to userData
+                userData.name = name;
+                userData.email = email;
+
+                console.log('Google Sign-In successful:', { name, email });
+
+                // Optional: Show success message
+                showStatus('Signed in with Google successfully!', 'success');
+            } catch (error) {
+                console.error('Error processing Google Sign-In:', error);
+                showStatus('Error signing in with Google. Please try again.', 'error');
+            }
+        }
     </script>
 </body>
 </html>

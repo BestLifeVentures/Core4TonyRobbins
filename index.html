@@ -1435,12 +1435,10 @@
                 return;
             }
 
-            // Request microphone permission
-            const hasAccess = await requestMicrophoneAccess();
-            if (!hasAccess) {
-                updateVoiceStatus(pageNum, 'Microphone access denied');
-                return;
-            }
+            // Check if speech recognition is supported
+            const recognitionSupported = 'webkitSpeechRecognition' in window || 'SpeechRecognition' in window;
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            const isIOS = /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
             // Initialize state
             voiceGuideState = {
@@ -1451,18 +1449,57 @@
                 waitingForTrigger: true,
                 audioRecorder: null,
                 audioChunks: [],
-                allAudioBlobs: []
+                allAudioBlobs: [],
+                lastQuestion: '',
+                noRecognition: !recognitionSupported || isIOS
             };
 
             // Hide start button, show stop button
             document.getElementById(`allowStartBtn${pageNum}`).style.display = 'none';
             document.getElementById(`stopBtn${pageNum}`).style.display = 'inline-block';
 
-            // Update status
-            updateVoiceStatus(pageNum, `Say: "${config.triggerPhrase}"`);
+            // Pause the state audio immediately
+            const audioElement = document.getElementById(`audio${pageNum}`);
+            if (audioElement && !audioElement.paused) {
+                audioElement.pause();
+                console.log('Paused state audio on start');
+            }
 
-            // Start listening for trigger phrase
-            startVoiceGuidedRecognition();
+            if (!recognitionSupported || isIOS) {
+                // No speech recognition support - use click-to-continue mode
+                console.log('Speech recognition not supported, using manual mode');
+                updateVoiceStatus(pageNum, `Click "Begin Questions" to start`);
+
+                // Add a begin button
+                const beginBtn = document.createElement('button');
+                beginBtn.className = 'btn';
+                beginBtn.textContent = 'Begin Questions';
+                beginBtn.style.marginTop = '10px';
+                beginBtn.onclick = () => {
+                    beginBtn.remove();
+                    voiceGuideState.waitingForTrigger = false;
+                    askNextQuestion();
+                };
+
+                const statusDiv = document.getElementById(`voiceStatus${pageNum}`);
+                if (statusDiv) {
+                    statusDiv.appendChild(document.createElement('br'));
+                    statusDiv.appendChild(beginBtn);
+                }
+            } else {
+                // Request microphone permission for speech recognition
+                const hasAccess = await requestMicrophoneAccess();
+                if (!hasAccess) {
+                    updateVoiceStatus(pageNum, 'Microphone access denied');
+                    return;
+                }
+
+                // Update status
+                updateVoiceStatus(pageNum, `Say: "${config.triggerPhrase}"`);
+
+                // Start listening for trigger phrase
+                startVoiceGuidedRecognition();
+            }
         }
 
         // Update voice status display
@@ -1552,6 +1589,35 @@
 
             let questionText = questionTemplates[questionIndex].replace('{name}', userName);
 
+            // Add a "Next Question" button for devices without speech recognition
+            const addNextButton = () => {
+                if (voiceGuideState.noRecognition) {
+                    const statusDiv = document.getElementById(`voiceStatus${voiceGuideState.pageNum}`);
+                    if (statusDiv) {
+                        // Remove any existing next button
+                        const existingBtn = statusDiv.querySelector('.next-q-btn');
+                        if (existingBtn) existingBtn.remove();
+
+                        // Add new next button
+                        const nextBtn = document.createElement('button');
+                        nextBtn.className = 'btn next-q-btn';
+                        nextBtn.textContent = 'Next Question';
+                        nextBtn.style.marginTop = '15px';
+                        nextBtn.onclick = () => {
+                            nextBtn.remove();
+                            voiceGuideState.currentQuestion++;
+                            if (voiceGuideState.currentQuestion < 3) {
+                                askNextQuestion();
+                            } else {
+                                completeSession();
+                            }
+                        };
+                        statusDiv.appendChild(document.createElement('br'));
+                        statusDiv.appendChild(nextBtn);
+                    }
+                }
+            };
+
             if (questionIndex === 0) {
                 questionText = `${config.greeting}, ${questionText}`;
 
@@ -1565,20 +1631,32 @@
                 // Wait 1 second before speaking the first question
                 updateVoiceStatus(voiceGuideState.pageNum, `Preparing...`);
                 setTimeout(() => {
-                    updateVoiceStatus(voiceGuideState.pageNum, `Listening... (Say "Read Next Question" when done)`);
+                    const statusText = voiceGuideState.noRecognition ?
+                        `Type your answer, then click "Next Question"` :
+                        `Listening... (Say "Read Next Question" when done)`;
+                    updateVoiceStatus(voiceGuideState.pageNum, statusText);
                     voiceGuideState.lastQuestion = questionText; // Store the question
                     speak(questionText, () => {
-                        // Start recording the answer
-                        startAudioRecording();
+                        // Start recording the answer only if recognition is supported
+                        if (!voiceGuideState.noRecognition) {
+                            startAudioRecording();
+                        }
+                        addNextButton();
                     });
                 }, 1000);
             } else {
                 // For subsequent questions, speak immediately
-                updateVoiceStatus(voiceGuideState.pageNum, `Listening... (Say "Read Next Question" when done)`);
+                const statusText = voiceGuideState.noRecognition ?
+                    `Type your answer, then click "Next Question"` :
+                    `Listening... (Say "Read Next Question" when done)`;
+                updateVoiceStatus(voiceGuideState.pageNum, statusText);
                 voiceGuideState.lastQuestion = questionText; // Store the question
                 speak(questionText, () => {
-                    // Start recording the answer
-                    startAudioRecording();
+                    // Start recording the answer only if recognition is supported
+                    if (!voiceGuideState.noRecognition) {
+                        startAudioRecording();
+                    }
+                    addNextButton();
                 });
             }
         }

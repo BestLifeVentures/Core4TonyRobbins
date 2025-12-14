@@ -986,7 +986,8 @@
             waitingForTrigger: false,
             audioRecorder: null,
             audioChunks: [],
-            allAudioBlobs: []
+            allAudioBlobs: [],
+            lastQuestion: ''
         };
 
         const archetypeConfig = {
@@ -1023,17 +1024,17 @@
         ];
 
         // Text-to-speech function
-        function speak(text, callback) {
+        function speak(text, callback, voiceName = 'Alex') {
             if ('speechSynthesis' in window) {
                 // Cancel any ongoing speech
                 window.speechSynthesis.cancel();
 
                 const utterance = new SpeechSynthesisUtterance(text);
 
-                // Select Alex voice
+                // Select specified voice or default to Alex
                 const voices = window.speechSynthesis.getVoices();
                 const preferredVoice = voices.find(voice =>
-                    voice.name.includes('Alex')
+                    voice.name.includes(voiceName)
                 ) || voices.find(voice => voice.lang.startsWith('en'));
 
                 if (preferredVoice) {
@@ -1140,6 +1141,18 @@
                 }
             }
 
+            // Check for repeat/clarification requests
+            const repeatPhrases = ['what', 'repeat', 'didn\'t hear', 'say that again', 'pardon', 'come again', 'didn\'t catch'];
+            const isRepeatRequest = repeatPhrases.some(phrase => lowerTranscript.includes(phrase));
+
+            if (isRepeatRequest && voiceGuideState.lastQuestion) {
+                console.log('Repeat request detected, using Fred voice');
+                speak(voiceGuideState.lastQuestion, () => {
+                    // Continue listening after repeating
+                }, 'Fred');
+                return true;
+            }
+
             // Check for "read next question"
             if (lowerTranscript.includes('read next question')) {
                 stopAudioRecording();
@@ -1191,6 +1204,7 @@
                 updateVoiceStatus(voiceGuideState.pageNum, `Preparing...`);
                 setTimeout(() => {
                     updateVoiceStatus(voiceGuideState.pageNum, `Listening... (Say "Read Next Question" when done)`);
+                    voiceGuideState.lastQuestion = questionText; // Store the question
                     speak(questionText, () => {
                         // Start recording the answer
                         startAudioRecording();
@@ -1199,6 +1213,7 @@
             } else {
                 // For subsequent questions, speak immediately
                 updateVoiceStatus(voiceGuideState.pageNum, `Listening... (Say "Read Next Question" when done)`);
+                voiceGuideState.lastQuestion = questionText; // Store the question
                 speak(questionText, () => {
                     // Start recording the answer
                     startAudioRecording();

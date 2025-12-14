@@ -1314,65 +1314,105 @@
         // Text-to-speech function
         function speak(text, callback, voiceName = null) {
             if ('speechSynthesis' in window) {
-                // Cancel any ongoing speech
-                window.speechSynthesis.cancel();
-
-                const utterance = new SpeechSynthesisUtterance(text);
-
                 // Detect if mobile device
                 const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
 
-                // Select specified voice or default based on device
-                const voices = window.speechSynthesis.getVoices();
-                let preferredVoice;
+                // Function to actually perform the speech
+                const performSpeech = () => {
+                    // Cancel any ongoing speech
+                    window.speechSynthesis.cancel();
 
-                console.log('Available voices:', voices.map(v => v.name + ' (' + v.lang + ')'));
+                    const utterance = new SpeechSynthesisUtterance(text);
 
-                if (voiceName) {
-                    // If a specific voice is requested (e.g., Fred for repeats)
-                    preferredVoice = voices.find(voice => voice.name.includes(voiceName));
-                } else if (isMobile) {
-                    // Mobile devices: Use widely available voices
-                    preferredVoice = voices.find(voice =>
-                        voice.lang.startsWith('en-US') &&
-                        (voice.name.includes('Google') || voice.name.includes('Male') || voice.name.includes('Samantha'))
-                    ) || voices.find(voice =>
-                        voice.lang.startsWith('en-GB') &&
-                        (voice.name.includes('Male') || voice.name.includes('Google'))
-                    ) || voices.find(voice =>
-                        voice.lang.startsWith('en')
-                    ) || voices[0]; // Ultimate fallback: use first available voice
-                } else {
-                    // Desktop: Prefer British male voices
-                    preferredVoice = voices.find(voice =>
-                        voice.lang.includes('en-GB') &&
-                        (voice.name.includes('Male') || voice.name.includes('Daniel') || voice.name.includes('George'))
-                    ) || voices.find(voice =>
-                        voice.lang.includes('en-GB')
-                    ) || voices.find(voice =>
-                        voice.lang.startsWith('en-US')
-                    ) || voices.find(voice =>
-                        voice.lang.startsWith('en')
-                    ) || voices[0]; // Ultimate fallback
-                }
+                    // Get available voices (ensure they're loaded)
+                    let voices = window.speechSynthesis.getVoices();
 
-                if (preferredVoice) {
-                    utterance.voice = preferredVoice;
-                    console.log('Using voice:', preferredVoice.name, '(', preferredVoice.lang, ')');
-                } else {
-                    console.warn('No voice selected, using default');
-                }
+                    // If no voices available, wait for them to load (mobile Safari issue)
+                    if (voices.length === 0) {
+                        console.log('Waiting for voices to load...');
+                        window.speechSynthesis.onvoiceschanged = () => {
+                            voices = window.speechSynthesis.getVoices();
+                            console.log('Voices loaded:', voices.length);
+                            performSpeech(); // Retry
+                        };
+                        return;
+                    }
 
-                // Voice settings for calm, clear speech
-                utterance.rate = 0.85;  // Slower, more calming pace
-                utterance.pitch = 1.0;  // Natural pitch
-                utterance.volume = 1.0; // Full volume
+                    let preferredVoice;
 
-                if (callback) {
-                    utterance.onend = callback;
-                }
+                    console.log('Available voices:', voices.map(v => v.name + ' (' + v.lang + ')'));
 
-                window.speechSynthesis.speak(utterance);
+                    if (voiceName) {
+                        // If a specific voice is requested (e.g., Fred for repeats)
+                        preferredVoice = voices.find(voice => voice.name.includes(voiceName));
+                    } else if (isMobile) {
+                        // Mobile devices: Use widely available voices
+                        // Try multiple fallbacks to ensure we get a working voice
+                        preferredVoice = voices.find(voice =>
+                            voice.lang.startsWith('en') && voice.default
+                        ) || voices.find(voice =>
+                            voice.lang.startsWith('en-US')
+                        ) || voices.find(voice =>
+                            voice.lang.startsWith('en-GB')
+                        ) || voices.find(voice =>
+                            voice.lang.startsWith('en')
+                        ) || voices[0]; // Ultimate fallback: use first available voice
+                    } else {
+                        // Desktop: Prefer British male voices
+                        preferredVoice = voices.find(voice =>
+                            voice.lang.includes('en-GB') &&
+                            (voice.name.includes('Male') || voice.name.includes('Daniel') || voice.name.includes('George'))
+                        ) || voices.find(voice =>
+                            voice.lang.includes('en-GB')
+                        ) || voices.find(voice =>
+                            voice.lang.startsWith('en-US')
+                        ) || voices.find(voice =>
+                            voice.lang.startsWith('en')
+                        ) || voices[0]; // Ultimate fallback
+                    }
+
+                    if (preferredVoice) {
+                        utterance.voice = preferredVoice;
+                        console.log('Using voice:', preferredVoice.name, '(', preferredVoice.lang, ')');
+                    } else {
+                        console.warn('No voice selected, using default');
+                    }
+
+                    // Voice settings for calm, clear speech
+                    utterance.rate = 0.85;  // Slower, more calming pace
+                    utterance.pitch = 1.0;  // Natural pitch
+                    utterance.volume = 1.0; // Full volume
+
+                    // Add error handler
+                    utterance.onerror = (event) => {
+                        console.error('Speech synthesis error:', event.error);
+                        if (callback) callback();
+                    };
+
+                    if (callback) {
+                        utterance.onend = callback;
+                    }
+
+                    // iOS Safari fix: Resume speechSynthesis if it's paused
+                    if (isMobile && window.speechSynthesis.paused) {
+                        window.speechSynthesis.resume();
+                    }
+
+                    console.log('Speaking:', text);
+                    window.speechSynthesis.speak(utterance);
+
+                    // iOS Safari workaround: Force resume after a short delay
+                    if (isMobile) {
+                        setTimeout(() => {
+                            if (window.speechSynthesis.paused) {
+                                console.log('Resuming paused speech...');
+                                window.speechSynthesis.resume();
+                            }
+                        }, 100);
+                    }
+                };
+
+                performSpeech();
             } else {
                 console.error('Text-to-speech not supported');
                 if (callback) callback();

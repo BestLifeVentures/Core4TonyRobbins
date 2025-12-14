@@ -421,10 +421,6 @@
                 <div class="citation">- Framework By Tony Robbins</div>
             </div>
 
-            <div class="video-frame">
-                <span>YouTube Video Embed Frame</span>
-            </div>
-
             <form id="welcomeForm">
                 <div class="form-group">
                     <label for="blvId">
@@ -1170,14 +1166,31 @@
 
             if (questionIndex === 0) {
                 questionText = `${config.greeting}, ${questionText}`;
+
+                // Pause the "Enter Optimal State" audio if it's playing
+                const audioElement = document.getElementById(`audio${voiceGuideState.pageNum}`);
+                if (audioElement && !audioElement.paused) {
+                    audioElement.pause();
+                    console.log('Paused state audio');
+                }
+
+                // Wait 1 second before speaking the first question
+                updateVoiceStatus(voiceGuideState.pageNum, `Preparing...`);
+                setTimeout(() => {
+                    updateVoiceStatus(voiceGuideState.pageNum, `Listening... (Say "Read Next Question" when done)`);
+                    speak(questionText, () => {
+                        // Start recording the answer
+                        startAudioRecording();
+                    });
+                }, 1000);
+            } else {
+                // For subsequent questions, speak immediately
+                updateVoiceStatus(voiceGuideState.pageNum, `Listening... (Say "Read Next Question" when done)`);
+                speak(questionText, () => {
+                    // Start recording the answer
+                    startAudioRecording();
+                });
             }
-
-            updateVoiceStatus(voiceGuideState.pageNum, `Listening... (Say "Read Next Question" when done)`);
-
-            speak(questionText, () => {
-                // Start recording the answer
-                startAudioRecording();
-            });
         }
 
         // Start recording audio

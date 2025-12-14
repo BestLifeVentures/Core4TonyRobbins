@@ -238,6 +238,18 @@
             border: 1px solid var(--border-color);
         }
 
+        /* Stop Listening buttons - red styling */
+        button[id^="stopBtn"] {
+            background: #dc3545 !important;
+            border-color: #dc3545 !important;
+            color: white !important;
+        }
+
+        button[id^="stopBtn"]:hover {
+            background: #c82333 !important;
+            border-color: #bd2130 !important;
+        }
+
         .btn-record {
             padding: 10px 24px;
             font-size: 0.95rem;
@@ -438,13 +450,13 @@
             left: 0;
             top: 50%;
             transform: translateY(-50%);
-            background: #ff8c00;
-            color: white;
+            background: linear-gradient(135deg, #ff8c00 0%, #1a1a1a 100%);
+            color: #000000;
             border: none;
             padding: 15px 20px;
             font-family: 'Cinzel', serif;
             font-size: 0.9rem;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
             border-radius: 0 6px 6px 0;
             box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
@@ -459,7 +471,7 @@
         }
 
         .not-working-btn:hover {
-            background: #ff9f1a;
+            background: linear-gradient(135deg, #ff9f1a 0%, #2a2a2a 100%);
             padding-left: 25px;
         }
 
@@ -1236,26 +1248,48 @@
 
                 const utterance = new SpeechSynthesisUtterance(text);
 
-                // Select specified voice or default to British male
+                // Detect if mobile device
+                const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
+                // Select specified voice or default based on device
                 const voices = window.speechSynthesis.getVoices();
                 let preferredVoice;
+
+                console.log('Available voices:', voices.map(v => v.name + ' (' + v.lang + ')'));
 
                 if (voiceName) {
                     // If a specific voice is requested (e.g., Fred for repeats)
                     preferredVoice = voices.find(voice => voice.name.includes(voiceName));
+                } else if (isMobile) {
+                    // Mobile devices: Use widely available voices
+                    preferredVoice = voices.find(voice =>
+                        voice.lang.startsWith('en-US') &&
+                        (voice.name.includes('Google') || voice.name.includes('Male') || voice.name.includes('Samantha'))
+                    ) || voices.find(voice =>
+                        voice.lang.startsWith('en-GB') &&
+                        (voice.name.includes('Male') || voice.name.includes('Google'))
+                    ) || voices.find(voice =>
+                        voice.lang.startsWith('en')
+                    ) || voices[0]; // Ultimate fallback: use first available voice
                 } else {
-                    // Default: Look for British male voices
+                    // Desktop: Prefer British male voices
                     preferredVoice = voices.find(voice =>
                         voice.lang.includes('en-GB') &&
                         (voice.name.includes('Male') || voice.name.includes('Daniel') || voice.name.includes('George'))
                     ) || voices.find(voice =>
                         voice.lang.includes('en-GB')
-                    ) || voices.find(voice => voice.lang.startsWith('en'));
+                    ) || voices.find(voice =>
+                        voice.lang.startsWith('en-US')
+                    ) || voices.find(voice =>
+                        voice.lang.startsWith('en')
+                    ) || voices[0]; // Ultimate fallback
                 }
 
                 if (preferredVoice) {
                     utterance.voice = preferredVoice;
-                    console.log('Using voice:', preferredVoice.name);
+                    console.log('Using voice:', preferredVoice.name, '(', preferredVoice.lang, ')');
+                } else {
+                    console.warn('No voice selected, using default');
                 }
 
                 // Voice settings for calm, clear speech

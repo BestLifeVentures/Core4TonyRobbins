@@ -627,6 +627,13 @@
                 <div class="citation">- Framework By Tony Robbins</div>
             </div>
 
+            <!-- Before You Start Button -->
+            <div style="text-align: center; margin-bottom: 25px;">
+                <button type="button" class="btn btn-secondary" onclick="showBeforeYouStartModal()" style="font-size: 0.95rem;">
+                    Before You Start
+                </button>
+            </div>
+
             <form id="welcomeForm">
                 <!-- Google Sign-In Section
                      SETUP REQUIRED:
@@ -991,6 +998,52 @@
                     <li>Update your browser to the latest version for best performance</li>
                     <li>Enable JavaScript in your browser settings</li>
                 </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Before You Start Modal -->
+    <div id="beforeStartModal" class="compat-modal" onclick="closeBeforeYouStartModal(event)">
+        <div class="compat-modal-content" onclick="event.stopPropagation()">
+            <div class="compat-modal-header">
+                <h2>Before You Start</h2>
+                <button class="close-modal" onclick="closeBeforeYouStartModal()">&times;</button>
+            </div>
+
+            <div class="compat-section">
+                <h3 style="color: var(--accent-gold); margin-bottom: 15px;">For Best Experience Please Use:</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 15px; font-style: italic;">
+                    Full voice interaction - voice recognition and voice responses
+                </p>
+                <ul class="compat-list">
+                    <li><strong>Desktop Computers</strong> - Chrome, Safari, Edge, or Firefox</li>
+                    <li><strong>Android Phone</strong> - Chrome browser only</li>
+                </ul>
+                <div style="background: rgba(212, 175, 55, 0.15); padding: 15px; border-radius: 6px; margin-top: 15px;">
+                    <p style="color: var(--text-primary); font-size: 0.95rem; margin: 0;">
+                        ✨ These devices support full voice commands: speak your answers and the system listens and responds.
+                    </p>
+                </div>
+            </div>
+
+            <div class="compat-section" style="margin-top: 30px;">
+                <h3 style="color: var(--text-secondary); margin-bottom: 15px;">If Not Accessible:</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 15px; font-style: italic;">
+                    Manual, but effective options
+                </p>
+                <ul class="compat-list">
+                    <li><strong>iPhone/iPad</strong> - Safari or any browser</li>
+                    <li><strong>Android Phone</strong> - Firefox, Samsung Internet, or other browsers</li>
+                </ul>
+                <div style="background: rgba(184, 184, 184, 0.1); padding: 15px; border-radius: 6px; margin-top: 15px;">
+                    <p style="color: var(--text-primary); font-size: 0.95rem; margin: 0;">
+                        📝 You'll hear questions spoken to you, then type your answers and click buttons to continue. Equally powerful experience!
+                    </p>
+                </div>
+            </div>
+
+            <div class="compat-note">
+                <strong>Note:</strong> All devices will receive voice-spoken questions. The difference is only in how you respond - by voice or by typing.
             </div>
         </div>
     </div>
@@ -2247,10 +2300,23 @@
             }
         }
 
-        // Close modal with Escape key
+        // Before You Start Modal Functions
+        function showBeforeYouStartModal() {
+            document.getElementById('beforeStartModal').style.display = 'block';
+        }
+
+        function closeBeforeYouStartModal(event) {
+            // Close if clicking outside modal content or on close button
+            if (!event || event.target.id === 'beforeStartModal' || event.target.classList.contains('close-modal')) {
+                document.getElementById('beforeStartModal').style.display = 'none';
+            }
+        }
+
+        // Close modals with Escape key
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeCompatibilityModal();
+                closeBeforeYouStartModal();
             }
         });
 

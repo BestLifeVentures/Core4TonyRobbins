@@ -1009,18 +1009,10 @@
 
                 const utterance = new SpeechSynthesisUtterance(text);
 
-                // Select a preferred voice (female, English)
+                // Select Alex voice
                 const voices = window.speechSynthesis.getVoices();
                 const preferredVoice = voices.find(voice =>
-                    voice.lang.startsWith('en') &&
-                    voice.name.toLowerCase().includes('female')
-                ) || voices.find(voice =>
-                    voice.lang.startsWith('en') &&
-                    (voice.name.includes('Samantha') ||
-                     voice.name.includes('Karen') ||
-                     voice.name.includes('Susan') ||
-                     voice.name.includes('Google US English') ||
-                     voice.name.includes('Microsoft Zira'))
+                    voice.name.includes('Alex')
                 ) || voices.find(voice => voice.lang.startsWith('en'));
 
                 if (preferredVoice) {

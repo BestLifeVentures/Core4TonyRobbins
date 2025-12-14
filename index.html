@@ -1024,18 +1024,29 @@
         ];
 
         // Text-to-speech function
-        function speak(text, callback, voiceName = 'Alex') {
+        function speak(text, callback, voiceName = null) {
             if ('speechSynthesis' in window) {
                 // Cancel any ongoing speech
                 window.speechSynthesis.cancel();
 
                 const utterance = new SpeechSynthesisUtterance(text);
 
-                // Select specified voice or default to Alex
+                // Select specified voice or default to British male
                 const voices = window.speechSynthesis.getVoices();
-                const preferredVoice = voices.find(voice =>
-                    voice.name.includes(voiceName)
-                ) || voices.find(voice => voice.lang.startsWith('en'));
+                let preferredVoice;
+
+                if (voiceName) {
+                    // If a specific voice is requested (e.g., Fred for repeats)
+                    preferredVoice = voices.find(voice => voice.name.includes(voiceName));
+                } else {
+                    // Default: Look for British male voices
+                    preferredVoice = voices.find(voice =>
+                        voice.lang.includes('en-GB') &&
+                        (voice.name.includes('Male') || voice.name.includes('Daniel') || voice.name.includes('George'))
+                    ) || voices.find(voice =>
+                        voice.lang.includes('en-GB')
+                    ) || voices.find(voice => voice.lang.startsWith('en'));
+                }
 
                 if (preferredVoice) {
                     utterance.voice = preferredVoice;

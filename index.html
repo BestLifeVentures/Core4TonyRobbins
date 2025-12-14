@@ -483,6 +483,7 @@
 
             <div class="voice-guide-control" style="text-align: center; margin: 30px 0;">
                 <button class="btn" id="allowStartBtn2" onclick="startVoiceGuide(2, 'warrior')">Allow & Start</button>
+                <button class="btn btn-secondary" id="stopBtn2" onclick="stopVoiceGuide(2)" style="display: none;">Stop Listening</button>
                 <div id="voiceStatus2" style="margin-top: 15px; font-size: 1.1rem; color: var(--accent-gold); min-height: 30px;"></div>
             </div>
 
@@ -534,6 +535,7 @@
 
             <div class="voice-guide-control" style="text-align: center; margin: 30px 0;">
                 <button class="btn" id="allowStartBtn3" onclick="startVoiceGuide(3, 'magician')">Allow & Start</button>
+                <button class="btn btn-secondary" id="stopBtn3" onclick="stopVoiceGuide(3)" style="display: none;">Stop Listening</button>
                 <div id="voiceStatus3" style="margin-top: 15px; font-size: 1.1rem; color: var(--accent-gold); min-height: 30px;"></div>
             </div>
 
@@ -586,6 +588,7 @@
 
             <div class="voice-guide-control" style="text-align: center; margin: 30px 0;">
                 <button class="btn" id="allowStartBtn4" onclick="startVoiceGuide(4, 'lover')">Allow & Start</button>
+                <button class="btn btn-secondary" id="stopBtn4" onclick="stopVoiceGuide(4)" style="display: none;">Stop Listening</button>
                 <div id="voiceStatus4" style="margin-top: 15px; font-size: 1.1rem; color: var(--accent-gold); min-height: 30px;"></div>
             </div>
 
@@ -638,6 +641,7 @@
 
             <div class="voice-guide-control" style="text-align: center; margin: 30px 0;">
                 <button class="btn" id="allowStartBtn5" onclick="startVoiceGuide(5, 'sage')">Allow & Start</button>
+                <button class="btn btn-secondary" id="stopBtn5" onclick="stopVoiceGuide(5)" style="display: none;">Stop Listening</button>
                 <div id="voiceStatus5" style="margin-top: 15px; font-size: 1.1rem; color: var(--accent-gold); min-height: 30px;"></div>
             </div>
 
@@ -1104,8 +1108,9 @@
                 allAudioBlobs: []
             };
 
-            // Hide the button
+            // Hide start button, show stop button
             document.getElementById(`allowStartBtn${pageNum}`).style.display = 'none';
+            document.getElementById(`stopBtn${pageNum}`).style.display = 'inline-block';
 
             // Update status
             updateVoiceStatus(pageNum, `Say: "${config.triggerPhrase}"`);
@@ -1235,9 +1240,38 @@
         // Start recording audio
         async function startAudioRecording() {
             try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                // Get audio stream with specific constraints for better cross-device compatibility
+                const constraints = {
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        sampleRate: 44100
+                    }
+                };
 
-                voiceGuideState.audioRecorder = new MediaRecorder(stream);
+                const stream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                // Determine best MIME type for this device
+                let mimeType = 'audio/webm';
+                const possibleTypes = [
+                    'audio/webm;codecs=opus',
+                    'audio/webm',
+                    'audio/ogg;codecs=opus',
+                    'audio/mp4',
+                    'audio/mpeg',
+                    'audio/wav'
+                ];
+
+                for (const type of possibleTypes) {
+                    if (MediaRecorder.isTypeSupported(type)) {
+                        mimeType = type;
+                        console.log('Using MIME type:', mimeType);
+                        break;
+                    }
+                }
+
+                const options = { mimeType: mimeType };
+                voiceGuideState.audioRecorder = new MediaRecorder(stream, options);
                 voiceGuideState.audioChunks = [];
 
                 voiceGuideState.audioRecorder.ondataavailable = (event) => {
@@ -1247,7 +1281,7 @@
                 };
 
                 voiceGuideState.audioRecorder.onstop = () => {
-                    const audioBlob = new Blob(voiceGuideState.audioChunks, { type: 'audio/webm' });
+                    const audioBlob = new Blob(voiceGuideState.audioChunks, { type: mimeType });
                     voiceGuideState.allAudioBlobs.push(audioBlob);
                     voiceGuideState.audioChunks = [];
 
@@ -1255,10 +1289,15 @@
                     stream.getTracks().forEach(track => track.stop());
                 };
 
+                voiceGuideState.audioRecorder.onerror = (event) => {
+                    console.error('MediaRecorder error:', event.error);
+                };
+
                 voiceGuideState.audioRecorder.start();
                 console.log('Audio recording started');
             } catch (error) {
                 console.error('Error starting audio recording:', error);
+                updateVoiceStatus(voiceGuideState.pageNum, 'Audio recording error. Continuing with voice recognition...');
             }
         }
 
@@ -1287,6 +1326,56 @@
                     window.sessionAudioBlobs.push(...voiceGuideState.allAudioBlobs);
                 }
             });
+        }
+
+        // Stop voice guide session
+        function stopVoiceGuide(pageNum) {
+            if (!voiceGuideState.active || voiceGuideState.pageNum !== pageNum) {
+                return;
+            }
+
+            // Save current transcript to textarea if we're in the middle of a question
+            if (!voiceGuideState.waitingForTrigger && voiceGuideState.currentQuestion < 3) {
+                const config = archetypeConfig[voiceGuideState.archetype];
+                const currentField = config.questions[voiceGuideState.currentQuestion];
+                const textarea = document.getElementById(currentField);
+                if (textarea && finalTranscript) {
+                    textarea.value = finalTranscript.trim();
+                    saveCurrentPageData();
+                }
+            }
+
+            // Stop audio recording
+            stopAudioRecording();
+
+            // Stop recognition
+            if (recognition) {
+                try {
+                    recognition.stop();
+                } catch (e) {
+                    console.log('Error stopping recognition:', e);
+                }
+            }
+
+            // Deactivate voice guide
+            voiceGuideState.active = false;
+
+            // Store any audio blobs
+            if (voiceGuideState.allAudioBlobs.length > 0) {
+                window.sessionAudioBlobs = window.sessionAudioBlobs || [];
+                window.sessionAudioBlobs.push(...voiceGuideState.allAudioBlobs);
+            }
+
+            // Reset transcripts
+            finalTranscript = '';
+            interimTranscript = '';
+
+            // Show start button, hide stop button
+            document.getElementById(`allowStartBtn${pageNum}`).style.display = 'inline-block';
+            document.getElementById(`stopBtn${pageNum}`).style.display = 'none';
+
+            // Update status
+            updateVoiceStatus(pageNum, 'Session stopped. Click "Allow & Start" to begin again.');
         }
 
         // Restart the session
@@ -1604,7 +1693,7 @@
             ];
 
             let prompt = 'Understand tony robbins framework of the 4 archetypes when reviewing this prompt.\n\n';
-            prompt += 'I have entered the state of each archetype and given myself advice. The advice is as follows:\n\n';
+            prompt += 'I have entered the state of each archetype and given myself advice from that state. As follows:\n\n';
 
             sections.forEach(section => {
                 prompt += `${section.title} says:\n`;
@@ -1613,7 +1702,7 @@
                 prompt += `All I need to do is: ${summarize(section.do)}\n\n`;
             });
 
-            prompt += `You are an expert in psychology, human motivation, and behavior. Here are my inner parts separated into 4 key guides: the warrior, the magician, the lover, the sage. Understand these parts in the sense of internal family systems & hypnosis. Use the answers I give you to help me APPLY their advice in my daily life. The goal is for clarity, deep subconscious change, and improved decision making. For this conversation you are meant to ask questions only. State "I am only asking questions" and instruct me to provide answers to your questions. Only ask 1 question at a time. You are able to add frames to your questions to keep the user on target. Example "what stood out to you from the session" could be "this session helped me understand...." Use these frames with your understanding of hypnosis to guide the user to deep clarity on their own subconscious. and guide them to clear action after the new found discovery. Maintain this cadence throughout this entire chat. EVEN if they ask to break the cadence, dont.`;
+            prompt += `You are an expert in psychology, human motivation, and behavior. Understand these parts in the sense of internal family systems & hypnosis. Use the answers I give you to help me APPLY their advice in my daily life. The goal is for clarity, deep subconscious change, and improved decision making. For this conversation you are meant to ask questions & a short summary to clarify what they respond with (this needs to help them apply to reality). State "I am only asking questions" and instruct me to provide answers to your questions. Only ask 1 question at a time. You are able to add frames to your questions to keep the user on target. Example "what stood out to you from the session" could be "this session helped me understand...." Use these frames with your understanding of hypnosis to guide the user to deep clarity on their own subconscious. and guide them to clear action after the new found discovery. Be very concise and transparent, do not speak mystically or creatively. Maintain this cadence throughout this entire chat. EVEN if they ask to break the cadence, dont. in your replies do NOT type out "framed question".`;
 
             return prompt;
         }
@@ -1647,12 +1736,21 @@
         function downloadResults() {
             // Check if we have audio recordings
             if (window.sessionAudioBlobs && window.sessionAudioBlobs.length > 0) {
-                // Download audio file
-                const combinedBlob = new Blob(window.sessionAudioBlobs, { type: 'audio/webm' });
+                // Download audio file - detect MIME type from first blob
+                const mimeType = window.sessionAudioBlobs[0].type || 'audio/webm';
+                const combinedBlob = new Blob(window.sessionAudioBlobs, { type: mimeType });
+
+                // Determine file extension based on MIME type
+                let extension = 'webm';
+                if (mimeType.includes('mp4')) extension = 'mp4';
+                else if (mimeType.includes('mpeg')) extension = 'mp3';
+                else if (mimeType.includes('ogg')) extension = 'ogg';
+                else if (mimeType.includes('wav')) extension = 'wav';
+
                 const url = URL.createObjectURL(combinedBlob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = 'core-four-session-audio.webm';
+                a.download = `core-four-session-audio.${extension}`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
